@@ -12,3 +12,9 @@
 #define false 1
 
 typedef int boolean; 
+typedef struct sockaddr_in sockaddr_in; 
+typedef struct sockaddr sockaddr;
+
+int Server(char **argv);
+int Client(char **argv); 
+int printHelp(); 
