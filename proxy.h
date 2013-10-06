@@ -8,8 +8,8 @@
 #include <string.h>
 #include <sys/types.h>
 
-#define true 0
-#define false 1
+#define true 1
+#define false 0
 
 typedef int boolean; 
 typedef struct sockaddr_in sockaddr_in; 

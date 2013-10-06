@@ -28,7 +28,7 @@ int Client(char **argv){
 
 int Server(char **argv){
 	sockaddr_in sockAddr; 
-	int serverSocket; 
+	int serverSocket, connection; 
 	boolean binder, listener; 
 	int port; 
 
@@ -48,7 +48,7 @@ int Server(char **argv){
 	sockAddr.sin_port = htos(port);
 	
 	/*bind the socket to the port*/
-	binder = bind((serverSocket, (sockaddr)&sockAddr, sizeof(sockAddr)));
+	binder = bind((serverSocket, (sockaddr*)&sockAddr, sizeof(sockAddr)));
 	if(binder){
 		printf("Failed to bind to port\n"); 
 		close(serverSocket);
@@ -63,4 +63,29 @@ int Server(char **argv){
 		return 1; 
 	}
 
+	/*get incoming connection*/
+	while(true){
+		connection = accept(socketServer, (sockaddr*)NULL, NULL);
+
+		if(connection <= 0){ 
+			printf("Error accepting client connection\n"); 
+			close(socketServer); 	
+			return 1; 
+		}
+
+		/* have to write to the tap device here
+		 * I don't think we will have to start a seperate 
+		 * thread for listening to the thread device 
+		 * since we're going to write to be running there are
+		 * two different methods: one for the server and one 
+		 * for the client */
+
+		if(shutdown(connection, SHUT_RWDR) != 1){
+			printf("Error shutting down socket.\n"); 
+			close(connection); 
+			return 1; 
+		}
+		close(connection);
+		sleep(1);
+	}
 }
