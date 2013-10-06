@@ -21,11 +21,56 @@ int printHelp(){
 	printf("If setting up for client use:\n\t./proxy <remote host> <remote port> <local interface>\n"); 
 	printf("\nThank you for using our proxy!\n"); 
 }
-
+/*
+ * reads from the tap device and writes to the port
+ */
 int Client(char **argv){
+	sockaddr_in sockAddr; 
+	int clientSocket, connection; 
+	char buffer[2024]; 
+	boolean binder, listener; 
+	int host, port, reader; 
+	
+	scanf(argv[2], "%d", port); //gets the port from ascii to int
+
+	/*create the socket*/
+	clientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); 
+	if(clientSocket < 0){
+		printf("Failed to create socket\n"); 
+		return 1; 
+	}
+
+	/*set the (remote) port*/
+	memset(&sockAddr, 0, sizeof(sockAddr));
+	sockAddr.sin_family = AF_INET; 
+	sockAddr.sin_port = htons(port);
+	
+	/*set the (remote) host*/
+	if(inet_pton(AF_INET, argv[1], &sockAddr.sin_addr)<0){
+		printf("Failed to convert IPv4 addr to binary\n");
+		return 1; 
+	}
+
+	connection = connect(clientSocket, (sockaddr *)&sockAddr, sizeof(sockAddr));
+
+	if(connection < 0){
+		printf("Failed to connect to host\n"); 
+		close(clientSocket); 
+		return 1; 
+	}
+
+	while(true){
+
+		/* have to figure out how to read from the tap
+		 * device and write out to the socket. 
+		 */
+	}
+	
 
 }
-
+/*
+ * reads from the port and writes to the tap device
+ */
 int Server(char **argv){
 	sockaddr_in sockAddr; 
 	int serverSocket, connection; 
@@ -45,10 +90,10 @@ int Server(char **argv){
 	memset(&sockAddr, 0, sizeof(sockAddr)); 
 	sockAddr.sin_family = AF_INET; 
 	sockAddr.sin_addr.s_addr = INADDR_ANY;
-	sockAddr.sin_port = htos(port);
+	sockAddr.sin_port = htons(port);
 	
 	/*bind the socket to the port*/
-	binder = bind((serverSocket, (sockaddr*)&sockAddr, sizeof(sockAddr)));
+	binder = bind(serverSocket, (sockaddr*)&sockAddr, sizeof(sockAddr));
 	if(binder){
 		printf("Failed to bind to port\n"); 
 		close(serverSocket);
@@ -65,11 +110,11 @@ int Server(char **argv){
 
 	/*get incoming connection*/
 	while(true){
-		connection = accept(socketServer, (sockaddr*)NULL, NULL);
+		connection = accept(serverSocket, (sockaddr*)NULL, NULL);
 
 		if(connection <= 0){ 
 			printf("Error accepting client connection\n"); 
-			close(socketServer); 	
+			close(serverSocket); 	
 			return 1; 
 		}
 
@@ -78,13 +123,11 @@ int Server(char **argv){
 		 * thread for listening to the thread device 
 		 * since we're going to write to be running there are
 		 * two different methods: one for the server and one 
-		 * for the client */
+		 * for the client
+		 *
+		 * <local interface> (which is argv[2]) will be used 
+		 * here.*/
 
-		if(shutdown(connection, SHUT_RWDR) != 1){
-			printf("Error shutting down socket.\n"); 
-			close(connection); 
-			return 1; 
-		}
 		close(connection);
 		sleep(1);
 	}

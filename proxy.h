@@ -7,6 +7,8 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/types.h>
+#include <netdb.h>
+
 
 #define true 1
 #define false 0
