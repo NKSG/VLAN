@@ -29,8 +29,8 @@ int main(int argc, char **argv){
 	}	
 			
 	switch(argc){
-		case 2: return Client(argv); 
-		case 3: return Server(argv);
+		case 3: return Client(argv); 
+		case 4: return Server(argv);
 		default: 
 				printf("Invalid number of arguments");
 				return 1; 
