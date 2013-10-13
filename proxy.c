@@ -18,7 +18,7 @@
 #include <stdarg.h>
 
 /* buffer for reading from tun/tap interface, must be >= 1500 */
-#define BUFSIZE 2000   
+#define BUFSIZE 2024 
 #define CLIENT 0
 #define SERVER 1
 #define PORT 55555
@@ -128,11 +128,15 @@ int read_n(int fd, char *buf, int n) {
 int Client(char **argv){
 	sockaddr_in sockAddr; 
 	int clientSocket, connection; 
-	char buffer[2024]; 
+	char buffer[BUFSIZE]; 
 	boolean binder, listener; 
 	int host, port, reader; 
     //tun variables
     int maxfd;
+    int tap_fd;
+    int sock_fd, net_fd, optval = 1;
+    unsigned long int tap2net = 0, net2tap = 0;
+    uint16_t nread, nwrite, plength;
 	
 	scanf(argv[2], "%d", port); //gets the port from ascii to int
 
@@ -146,6 +150,7 @@ int Client(char **argv){
 	/*set the (remote) port*/
 	memset(&sockAddr, 0, sizeof(sockAddr));
 	sockAddr.sin_family = AF_INET; 
+	//sockAddr.sin_addr.s_addr = inet_addr(remote_ip);
 	sockAddr.sin_port = htons(port);
 	
 	/*set the (remote) host*/
@@ -164,6 +169,9 @@ int Client(char **argv){
 
     /* Connecting to tap. now you can read/write on tap_fd (used combo of tunnel function 
         from assignment pdf + simpletun c file */ 
+
+    //from socket to net
+    net_fd = clientSocket;
     char *if_name = “tap0”;
     if ( (tap_fd = allocate_tunnel(if_name, IFF_TAP | IFF_NO_PI)) < 0 ) {
         perror("Opening tap interface failed! \n");
@@ -211,28 +219,6 @@ int Client(char **argv){
 
             do_debug("TAP2NET %lu: Written %d bytes to the network\n", tap2net, nwrite);
         }
-
-        if(FD_ISSET(net_fd, &rd_set)) {
-            /* data from the network: read it, and write it to the tun/tap interface. 
-            * We need to read the length first, and then the packet */
-
-            /* Read length */
-            nread = read_n(net_fd, (char *)&plength, sizeof(plength));
-            if(nread == 0) {
-                /* ctrl-c at the other end */
-                break;
-            }
-
-            net2tap++;
-
-            /* read packet */
-            nread = read_n(net_fd, buffer, ntohs(plength));
-            do_debug("NET2TAP %lu: Read %d bytes from the network\n", net2tap, nread);
-
-            /* now buffer[] contains a full packet or frame, write it into the tun/tap interface */
-            nwrite = cwrite(tap_fd, buffer, nread);
-            do_debug("NET2TAP %lu: Written %d bytes to the tap interface\n", net2tap, nwrite);
-        }
     }
 }
 
@@ -240,12 +226,18 @@ int Client(char **argv){
  * reads from the port and writes to the tap device
  */
 int Server(char **argv){
-	sockaddr_in sockAddr; 
+	sockaddr_in sockAddr, remote; 
 	int serverSocket, connection; 
 	boolean binder, listener; 
 	int port; 
     //tun variables
     int maxfd;
+    int tap_fd;
+    int sock_fd, net_fd, optval = 1;
+    uint16_t nread, nwrite, plength;
+    unsigned long int tap2net = 0, net2tap = 0;
+    //test
+    socklen_t remotelen;
 
 	scanf(argv[1], "%d", port); //converts the port from ascii to int
 	
@@ -278,15 +270,25 @@ int Server(char **argv){
 		return 1; 
 	}
 
+    /* wait for connection request */
+    remotelen = sizeof(remote);
+    memset(&remote, 0, remotelen);
+    if ((net_fd = accept(sock_fd, (struct sockaddr*)&remote, &remotelen)) < 0) {
+        perror("accept()");
+        exit(1);
+    }
+
+
     /* Connecting to tap. now you can read/write on tap_fd (used combo of tunnel function 
         from assignment pdf + simpletun c file */ 
-    char *if_name = “tap0”;
+    char *if_name = “tap1”;
     if ( (tap_fd = allocate_tunnel(if_name, IFF_TAP | IFF_NO_PI)) < 0 ) {
         perror("Opening tap interface failed! \n");
         exit(1);
     }
 
     /* use select() to handle two descriptors at once */
+    maxfd = (tap_fd > net_fd)?tap_fd:net_fd;
 
 	/*get incoming connection*/
 	while(1){
