@@ -210,14 +210,14 @@ int Client(char **argv){
             nread = cread(tap_fd, buffer, BUFSIZE);
 
             tap2net++;
-            do_debug("TAP2NET %lu: Read %d bytes from the tap interface\n", tap2net, nread);
+            printf("TAP2NET %lu: Read %d bytes from the tap interface\n", tap2net, nread);
 
             /* write length + packet */
             plength = htons(nread);
             nwrite = cwrite(net_fd, (char *)&plength, sizeof(plength));
             nwrite = cwrite(net_fd, buffer, nread);
 
-            do_debug("TAP2NET %lu: Written %d bytes to the network\n", tap2net, nwrite);
+            printf("TAP2NET %lu: Written %d bytes to the network\n", tap2net, nwrite);
         }
     }
 }
@@ -342,11 +342,11 @@ int Server(char **argv){
 
             /* read packet */
             nread = read_n(net_fd, buffer, ntohs(plength));
-            do_debug("NET2TAP %lu: Read %d bytes from the network\n", net2tap, nread);
+            printf("NET2TAP %lu: Read %d bytes from the network\n", net2tap, nread);
 
             /* now buffer[] contains a full packet or frame, write it into the tun/tap interface */
             nwrite = cwrite(tap_fd, buffer, nread);
-            do_debug("NET2TAP %lu: Written %d bytes to the tap interface\n", net2tap, nwrite);
+            printf("NET2TAP %lu: Written %d bytes to the tap interface\n", net2tap, nwrite);
         }
 
 		close(connection);
