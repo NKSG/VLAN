@@ -172,7 +172,7 @@ int Client(char **argv){
 
     //from socket to net
     net_fd = clientSocket;
-    char *if_name = “tap0”;
+    char *if_name = "tap0";
     if ( (tap_fd = allocate_tunnel(if_name, IFF_TAP | IFF_NO_PI)) < 0 ) {
         perror("Opening tap interface failed! \n");
         exit(1);
@@ -228,6 +228,7 @@ int Client(char **argv){
 int Server(char **argv){
 	sockaddr_in sockAddr, remote; 
 	int serverSocket, connection; 
+	char buffer[BUFSIZE]; 
 	boolean binder, listener; 
 	int port; 
     //tun variables
@@ -281,7 +282,7 @@ int Server(char **argv){
 
     /* Connecting to tap. now you can read/write on tap_fd (used combo of tunnel function 
         from assignment pdf + simpletun c file */ 
-    char *if_name = “tap1”;
+    char *if_name = "tap1";
     if ( (tap_fd = allocate_tunnel(if_name, IFF_TAP | IFF_NO_PI)) < 0 ) {
         perror("Opening tap interface failed! \n");
         exit(1);
