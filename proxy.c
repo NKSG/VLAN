@@ -1,27 +1,4 @@
 #include "proxy.h"
-//from simpletun c slide
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <net/if.h>
-#include <linux/if_tun.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <arpa/inet.h>
-#include <sys/select.h>
-#include <sys/time.h>
-#include <errno.h>
-#include <stdarg.h>
-
-/* buffer for reading from tun/tap interface, must be >= 1500 */
-#define BUFSIZE 2024 
-#define CLIENT 0
-#define SERVER 1
-#define PORT 55555
 
 int main(int argc, char **argv){
 	if(argc == 1 || (strcmp(argv[1], "-h"))){
@@ -40,7 +17,7 @@ int main(int argc, char **argv){
 
 int printHelp(){
 	printf("\nFor USE:\n"); 
-	printf("If setting up for server use:\n\t./proxy <port> <local interface>\n"); 
+	printf("If setting up for server use:\n\t./proxy <port> <local interface>\n\n"); 
 	printf("If setting up for client use:\n\t./proxy <remote host> <remote port> <local interface>\n"); 
 	printf("\nThank you for using our proxy!\n"); 
 }

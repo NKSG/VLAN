@@ -1,15 +1,26 @@
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+//from simpletun c slide
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
 #include <string.h>
+#include <unistd.h>
+#include <net/if.h>
+#include <linux/if_tun.h>
 #include <sys/types.h>
-#include <netdb.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <arpa/inet.h>
+#include <sys/select.h>
+#include <sys/time.h>
+#include <errno.h>
+#include <stdarg.h>
 
-
+/* buffer for reading from tun/tap interface, must be >= 1500 */
+#define BUFSIZE 2024 
+#define CLIENT 0
+#define SERVER 1
+#define PORT 55555
 #define true 1
 #define false 0
 
