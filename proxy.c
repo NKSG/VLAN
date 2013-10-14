@@ -172,7 +172,7 @@ int Client(char **argv){
 
     //from socket to net
     net_fd = clientSocket;
-    char *if_name = “tap0”;
+    char *if_name = "tap0";
     if ( (tap_fd = allocate_tunnel(if_name, IFF_TAP | IFF_NO_PI)) < 0 ) {
         perror("Opening tap interface failed! \n");
         exit(1);
@@ -210,14 +210,14 @@ int Client(char **argv){
             nread = cread(tap_fd, buffer, BUFSIZE);
 
             tap2net++;
-            do_debug("TAP2NET %lu: Read %d bytes from the tap interface\n", tap2net, nread);
+            printf("TAP2NET %lu: Read %d bytes from the tap interface\n", tap2net, nread);
 
             /* write length + packet */
             plength = htons(nread);
             nwrite = cwrite(net_fd, (char *)&plength, sizeof(plength));
             nwrite = cwrite(net_fd, buffer, nread);
 
-            do_debug("TAP2NET %lu: Written %d bytes to the network\n", tap2net, nwrite);
+            printf("TAP2NET %lu: Written %d bytes to the network\n", tap2net, nwrite);
         }
     }
 }
@@ -228,6 +228,7 @@ int Client(char **argv){
 int Server(char **argv){
 	sockaddr_in sockAddr, remote; 
 	int serverSocket, connection; 
+	char buffer[BUFSIZE]; 
 	boolean binder, listener; 
 	int port; 
     //tun variables
@@ -281,7 +282,7 @@ int Server(char **argv){
 
     /* Connecting to tap. now you can read/write on tap_fd (used combo of tunnel function 
         from assignment pdf + simpletun c file */ 
-    char *if_name = “tap1”;
+    char *if_name = "tap1";
     if ( (tap_fd = allocate_tunnel(if_name, IFF_TAP | IFF_NO_PI)) < 0 ) {
         perror("Opening tap interface failed! \n");
         exit(1);
@@ -341,11 +342,11 @@ int Server(char **argv){
 
             /* read packet */
             nread = read_n(net_fd, buffer, ntohs(plength));
-            do_debug("NET2TAP %lu: Read %d bytes from the network\n", net2tap, nread);
+            printf("NET2TAP %lu: Read %d bytes from the network\n", net2tap, nread);
 
             /* now buffer[] contains a full packet or frame, write it into the tun/tap interface */
             nwrite = cwrite(tap_fd, buffer, nread);
-            do_debug("NET2TAP %lu: Written %d bytes to the tap interface\n", net2tap, nwrite);
+            printf("NET2TAP %lu: Written %d bytes to the tap interface\n", net2tap, nwrite);
         }
 
 		close(connection);
