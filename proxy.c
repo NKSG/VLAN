@@ -24,7 +24,7 @@
 #define PORT 55555
 
 int main(int argc, char **argv){
-	if(argc == 1 && (strcmp(argv[1], "-h"))){
+	if(argc == 1 || (strcmp(argv[1], "-h"))){
 			return printHelp(); 
 	}	
 			
