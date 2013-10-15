@@ -6,8 +6,8 @@ int main(int argc, char **argv){
 	}	
 			
 	switch(argc){
-		case 3: return Client(argv); 
-		case 4: return Server(argv);
+		case 3: return Server(argv); 
+		case 4: return Client(argv);
 		default: 
 				printf("Invalid number of arguments");
 				return 1; 
@@ -103,7 +103,7 @@ int read_n(int fd, char *buf, int n) {
  * reads from the tap device and writes to the port
  */
 int Client(char **argv){
-	sockaddr_in servSockAddr; 
+	//sockaddr_in servSockAddr; 
 	sockaddr_in myaddr; 
 	int clientSocket, connection; 
 	char buffer[BUFSIZE]; 
@@ -116,11 +116,11 @@ int Client(char **argv){
     int sock_fd, net_fd, optval = 1;
     unsigned long int tap2net = 0, net2tap = 0;
     uint16_t nread, nwrite, plength;
-    char *if_name; 
+    char *if_name = (char *)calloc(100, sizeof(char)); 
 	
-	scanf(argv[1], "%c", remote_ip); //gets the remote host ip from ascii to char 
-	scanf(argv[2], "%d", port); //gets the port from ascii to int
-	scanf(argv[3], "%c", if_name); //gets the tap name from ascii to char 
+	strcpy(remote_ip, argv[1]);	//gets the remote host
+	port = atoi(argv[2]);	//gets the port 
+	strcpy(if_name, argv[3]); //gets the name of the tap device	
 
 	/*create the socket*/
 	clientSocket = socket(AF_INET, SOCK_STREAM, 0); 
@@ -140,12 +140,13 @@ int Client(char **argv){
     myaddr.sin_family = AF_INET;
     myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
     myaddr.sin_port = htons(0);
-
+/*
     if (bind(clientSocket, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {
         perror("bind failed");
         close(clientSocket);
         return -1;
     }
+	*/
 
 
 
@@ -153,7 +154,7 @@ int Client(char **argv){
 	memset(&servSockAddr, 0, sizeof(servSockAddr));
 	servSockAddr.sin_family = AF_INET; 
 	servSockAddr.sin_addr.s_addr = inet_addr(remote_ip);
-	//servSockAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	servSockAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	servSockAddr.sin_port = htons(port);
 	
 	/*set the (remote) host*/
@@ -242,12 +243,12 @@ int Server(char **argv){
     int sock_fd, net_fd, optval = 1;
     uint16_t nread, nwrite, plength;
     unsigned long int tap2net = 0, net2tap = 0;
-    char *if_name;
+    char *if_name = (char *)calloc(100, sizeof(char));
     //test
     socklen_t remotelen;
-
-	scanf(argv[1], "%d", port); //converts the port from ascii to int
-	scanf(argv[2], "%c", if_name); //gets the tap name from ascii to char 
+	
+	port = atoi(argv[1]); 
+	strcpy(if_name, argv[2]);
 	
 	/*create the socket*/
 	serverSocket = socket(AF_INET, SOCK_STREAM, 0); 
@@ -281,7 +282,7 @@ int Server(char **argv){
     /* wait for connection request */
     remotelen = sizeof(remote);
     memset(&remote, 0, remotelen);
-    if ((net_fd = accept(sock_fd, (struct sockaddr*)&remote, &remotelen)) < 0) {
+    if ((net_fd = accept(serverSocket, (struct sockaddr*)&remote, &remotelen)) < 0) {
         perror("accept()");
         exit(1);
     }
@@ -299,13 +300,14 @@ int Server(char **argv){
 
 	/*get incoming connection*/
 	while(1){
-		connection = accept(serverSocket, (sockaddr*)NULL, NULL);
-
+		//connection = accept(serverSocket, (sockaddr*)NULL, NULL);
+/*
 		if(connection <= 0){ 
 			printf("Error accepting client connection\n"); 
 			close(serverSocket); 	
 			return 1; 
 		}
+		*/
 
 		/* have to write to the tap device here
 		 * I don't think we will have to start a seperate 
