@@ -1,7 +1,7 @@
 #include "proxy.h"
 
 int main(int argc, char **argv){
-	if(argc == 1 || (strcmp(argv[1], "-h"))){
+	if(argc == 1 || (strcmp(argv[1], "-h") == 0)){
 			return printHelp(); 
 	}	
 			
@@ -109,14 +109,18 @@ int Client(char **argv){
 	char buffer[BUFSIZE]; 
 	boolean binder, listener; 
 	int host, port, reader; 
+    char remote_ip[16] = "";
     //tun variables
     int maxfd;
     int tap_fd;
     int sock_fd, net_fd, optval = 1;
     unsigned long int tap2net = 0, net2tap = 0;
     uint16_t nread, nwrite, plength;
+    char *if_name; 
 	
+	scanf(argv[1], "%c", remote_ip); //gets the remote host ip from ascii to char 
 	scanf(argv[2], "%d", port); //gets the port from ascii to int
+	scanf(argv[3], "%c", if_name); //gets the tap name from ascii to char 
 
 	/*create the socket*/
 	clientSocket = socket(AF_INET, SOCK_STREAM, 0); 
@@ -174,7 +178,6 @@ int Client(char **argv){
         from assignment pdf + simpletun c file */ 
 
     //from socket to net
-    char *if_name = "tap0";
     if ( (tap_fd = allocate_tunnel(if_name, IFF_TAP | IFF_NO_PI)) < 0 ) {
         perror("Opening tap interface failed! \n");
         exit(1);
@@ -239,10 +242,12 @@ int Server(char **argv){
     int sock_fd, net_fd, optval = 1;
     uint16_t nread, nwrite, plength;
     unsigned long int tap2net = 0, net2tap = 0;
+    char *if_name;
     //test
     socklen_t remotelen;
 
 	scanf(argv[1], "%d", port); //converts the port from ascii to int
+	scanf(argv[2], "%c", if_name); //gets the tap name from ascii to char 
 	
 	/*create the socket*/
 	serverSocket = socket(AF_INET, SOCK_STREAM, 0); 
@@ -284,7 +289,6 @@ int Server(char **argv){
 
     /* Connecting to tap. now you can read/write on tap_fd (used combo of tunnel function 
         from assignment pdf + simpletun c file */ 
-    char *if_name = "tap1";
     if ( (tap_fd = allocate_tunnel(if_name, IFF_TAP | IFF_NO_PI)) < 0 ) {
         perror("Opening tap interface failed! \n");
         exit(1);
