@@ -103,7 +103,8 @@ int read_n(int fd, char *buf, int n) {
  * reads from the tap device and writes to the port
  */
 int Client(char **argv){
-	sockaddr_in sockAddr; 
+	sockaddr_in servSockAddr; 
+	sockaddr_in myaddr; 
 	int clientSocket, connection; 
 	char buffer[BUFSIZE]; 
 	boolean binder, listener; 
@@ -118,37 +119,61 @@ int Client(char **argv){
 	scanf(argv[2], "%d", port); //gets the port from ascii to int
 
 	/*create the socket*/
-	clientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); 
+	clientSocket = socket(AF_INET, SOCK_STREAM, 0); 
 	if(clientSocket < 0){
 		printf("Failed to create socket\n"); 
 		return 1; 
 	}
 
+    /* bind to an arbitrary return address */
+    /* because this is the client side, we don't care about the */
+    /* address since no application will connect here  --- */
+    /* INADDR_ANY is the IP address and 0 is the socket */
+    /* htonl converts a long integer (e.g. address) to a network */
+    /* representation (agreed-upon byte ordering */
+
+    memset((char *)&myaddr, 0, sizeof(myaddr));
+    myaddr.sin_family = AF_INET;
+    myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    myaddr.sin_port = htons(0);
+
+    if (bind(clientSocket, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {
+        perror("bind failed");
+        close(clientSocket);
+        return -1;
+    }
+
+
+
 	/*set the (remote) port*/
-	memset(&sockAddr, 0, sizeof(sockAddr));
-	sockAddr.sin_family = AF_INET; 
-	//sockAddr.sin_addr.s_addr = inet_addr(remote_ip);
-	sockAddr.sin_port = htons(port);
+	memset(&servSockAddr, 0, sizeof(servSockAddr));
+	servSockAddr.sin_family = AF_INET; 
+	servSockAddr.sin_addr.s_addr = inet_addr(remote_ip);
+	//servSockAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	servSockAddr.sin_port = htons(port);
 	
 	/*set the (remote) host*/
-	if(inet_pton(AF_INET, argv[1], &sockAddr.sin_addr)<0){
+    /*
+	if(inet_pton(AF_INET, argv[1], &servSockAddr.sin_addr)<0){
 		printf("Failed to convert IPv4 addr to binary\n");
 		return 1; 
 	}
+    */
 
-	connection = connect(clientSocket, (sockaddr *)&sockAddr, sizeof(sockAddr));
+	connection = connect(clientSocket, (sockaddr *) &servSockAddr, sizeof(servSockAddr));
 
 	if(connection < 0){
 		printf("Failed to connect to host\n"); 
 		close(clientSocket); 
-		return 1; 
+        exit(1);
 	}
+
+    net_fd = clientSocket;
 
     /* Connecting to tap. now you can read/write on tap_fd (used combo of tunnel function 
         from assignment pdf + simpletun c file */ 
 
     //from socket to net
-    net_fd = clientSocket;
     char *if_name = "tap0";
     if ( (tap_fd = allocate_tunnel(if_name, IFF_TAP | IFF_NO_PI)) < 0 ) {
         perror("Opening tap interface failed! \n");
@@ -220,8 +245,8 @@ int Server(char **argv){
 	scanf(argv[1], "%d", port); //converts the port from ascii to int
 	
 	/*create the socket*/
-	serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); 
-	if(serverSocket == -1){ 
+	serverSocket = socket(AF_INET, SOCK_STREAM, 0); 
+	if(serverSocket < 0){ 
 		printf("Failed to create the socket");
 		return 1; 
 	}
@@ -229,11 +254,11 @@ int Server(char **argv){
 	/*set the port for the socket*/
 	memset(&sockAddr, 0, sizeof(sockAddr)); 
 	sockAddr.sin_family = AF_INET; 
-	sockAddr.sin_addr.s_addr = INADDR_ANY;
+	sockAddr.sin_addr.s_addr = htonl (INADDR_ANY);
 	sockAddr.sin_port = htons(port);
 	
 	/*bind the socket to the port*/
-	binder = bind(serverSocket, (sockaddr*)&sockAddr, sizeof(sockAddr));
+	binder = bind(serverSocket, (sockaddr *) &sockAddr, sizeof(sockAddr));
 	if(binder){
 		printf("Failed to bind to port\n"); 
 		close(serverSocket);
@@ -241,8 +266,8 @@ int Server(char **argv){
 	}
 
 	/*set the amount of connections in the queue for the socket*/
-	listener = listen(serverSocket, 10); 
-	if(listener == -1){ 
+	listener = listen(serverSocket, 5); 
+	if(listener < 0){ 
 		printf("Failed to listen to port");
 		close(serverSocket); 
 		return 1; 
