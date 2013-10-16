@@ -6,7 +6,7 @@ OBJ = proxy.o
 %.o: %.c $(DEPS)
 	$(CC) $< -c -o $@ $(CFLAGS)
 
-proxy: $(OBJ)
+cs352proxy: $(OBJ)
 	$(CC) $^ -o $@ $(CFLAGS)
 
 $(OBJ) : proxy.h

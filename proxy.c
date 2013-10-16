@@ -116,6 +116,7 @@ int Client(char **argv){
     int sock_fd, net_fd, optval = 1;
     unsigned long int tap2net = 0, net2tap = 0;
     uint16_t nread, nwrite, plength;
+    int16_t typeMes;
     char *if_name = (char *)calloc(100, sizeof(char)); 
 	struct hostent *hp; 
 
@@ -185,7 +186,7 @@ int Client(char **argv){
     net_fd = clientSocket;
 
     /* Connecting to tap. now you can read/write on tap_fd (used combo of tunnel function 
-        from assignment pdf + simpletun c file */ 
+        from assignment pdf  simpletun c file */ 
 
     //from socket to net
     if ( (tap_fd = allocate_tunnel(if_name, IFF_TAP | IFF_NO_PI)) < 0 ) {
@@ -198,9 +199,10 @@ int Client(char **argv){
 
     while(1){
 
+		printf("asdf. tap_fd:%i\n",tap_fd);
+
         /* have to figure out how to read from the tap
         * device and write out to the socket. 
-        * Copied direct from simpletun file 
         */
         int ret;
         fd_set rd_set;
@@ -219,9 +221,11 @@ int Client(char **argv){
             exit(1);
         }
 
+	printf("Past ret < 0 second,tap_fd: %i\n",tap_fd);
+
         if(FD_ISSET(tap_fd, &rd_set)) {
             /* data from tun/tap: just read it and write it to the network */
-
+			printf("reading from tap, writing to the network\n");
             nread = cread(tap_fd, buffer, BUFSIZE);
 
             tap2net++;
@@ -233,6 +237,30 @@ int Client(char **argv){
             nwrite = cwrite(net_fd, buffer, nread);
 
             printf("TAP2NET %lu: Written %d bytes to the network\n", tap2net, nwrite);
+        }
+
+
+
+        if(FD_ISSET(net_fd, &rd_set)) {
+            /* data from the network: read it, and write it to the tun/tap interface. 
+            * we need to read the length first, and then the packet */
+			printf("Client::reading from the network, writing to the tap\n");
+            /* read length */
+            nread = read_n(net_fd, (char *)&plength, sizeof(plength));
+            if(nread == 0) {
+                /* ctrl-c at the other end */
+                break;
+            }
+
+            net2tap++;
+
+            /* read packet */
+            nread = read_n(net_fd, buffer, ntohs(plength));
+            printf("net2tap %lu: read %d bytes from the network\n", net2tap, nread);
+
+            /* now buffer[] contains a full packet or frame, write it into the tun/tap interface */
+            nwrite = cwrite(tap_fd, buffer, nread);
+            printf("net2tap %lu: written %d bytes to the tap interface\n", net2tap, nwrite);
         }
     }
 }
@@ -252,6 +280,7 @@ int Server(char **argv){
     int sock_fd, net_fd, optval = 1;
     uint16_t nread, nwrite, plength;
     unsigned long int tap2net = 0, net2tap = 0;
+    int16_t typeMes;
     char *if_name = (char *)calloc(100, sizeof(char));
     //test
     socklen_t remotelen;
@@ -318,15 +347,8 @@ int Server(char **argv){
 		}
 		*/
 
-		/* have to write to the tap device here
-		 * I don't think we will have to start a seperate 
-		 * thread for listening to the thread device 
-		 * since we're going to write to be running there are
-		 * two different methods: one for the server and one 
-		 * for the client
-		 *
-		 * <local interface> (which is argv[2]) will be used 
-		 * here.*/
+		printf("got a conn!\n");
+
         int ret;
         fd_set rd_set;
 
@@ -346,9 +368,9 @@ int Server(char **argv){
 
         if(FD_ISSET(net_fd, &rd_set)) {
             /* data from the network: read it, and write it to the tun/tap interface. 
-            * We need to read the length first, and then the packet */
-
-            /* Read length */
+            * we need to read the length first, and then the packet */
+			printf("SSERVER:::reading from the network, writing to tap");
+            /* read length */
             nread = read_n(net_fd, (char *)&plength, sizeof(plength));
             if(nread == 0) {
                 /* ctrl-c at the other end */
@@ -359,11 +381,28 @@ int Server(char **argv){
 
             /* read packet */
             nread = read_n(net_fd, buffer, ntohs(plength));
-            printf("NET2TAP %lu: Read %d bytes from the network\n", net2tap, nread);
+            printf("net2tap %lu: read %d bytes from the network\n", net2tap, nread);
 
             /* now buffer[] contains a full packet or frame, write it into the tun/tap interface */
             nwrite = cwrite(tap_fd, buffer, nread);
-            printf("NET2TAP %lu: Written %d bytes to the tap interface\n", net2tap, nwrite);
+            printf("net2tap %lu: written %d bytes to the tap interface\n", net2tap, nwrite);
+        }
+
+
+        if(FD_ISSET(tap_fd, &rd_set)) {
+            /* data from tun/tap: just read it and write it to the network */
+			printf("SERVER::Jreading from the tap, writing to network");
+            nread = cread(tap_fd, buffer, BUFSIZE);
+
+            tap2net++;
+            printf("TAP2NET %lu: Read %d bytes from the tap interface\n", tap2net, nread);
+
+            /* write length + packet */
+            plength = htons(nread);
+            nwrite = cwrite(net_fd, (char *)&plength, sizeof(plength));
+            nwrite = cwrite(net_fd, buffer, nread);
+
+            printf("TAP2NET %lu: Written %d bytes to the network\n", tap2net, nwrite);
         }
 
 		close(connection);
