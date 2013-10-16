@@ -103,7 +103,7 @@ int read_n(int fd, char *buf, int n) {
  * reads from the tap device and writes to the port
  */
 int Client(char **argv){
-	//sockaddr_in servSockAddr; 
+	sockaddr_in servSockAddr; 
 	sockaddr_in myaddr; 
 	int clientSocket, connection; 
 	char buffer[BUFSIZE]; 
@@ -117,6 +117,8 @@ int Client(char **argv){
     unsigned long int tap2net = 0, net2tap = 0;
     uint16_t nread, nwrite, plength;
     char *if_name = (char *)calloc(100, sizeof(char)); 
+	struct hostent *hp; 
+
 	
 	strcpy(remote_ip, argv[1]);	//gets the remote host
 	port = atoi(argv[2]);	//gets the port 
@@ -154,7 +156,14 @@ int Client(char **argv){
 	memset(&servSockAddr, 0, sizeof(servSockAddr));
 	servSockAddr.sin_family = AF_INET; 
 	servSockAddr.sin_addr.s_addr = inet_addr(remote_ip);
-	servSockAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	if(servSockAddr.sin_addr.s_addr == -1){
+		hp = gethostbyname(remote_ip); 
+		if(hp == NULL){
+			fprintf(stderr, "%s is unreachable or doesn't exist\n", remote_ip); 
+			return 0;
+		}
+		bcopy(hp->h_addr, &servSockAddr.sin_addr, hp->h_length); 
+	}
 	servSockAddr.sin_port = htons(port);
 	
 	/*set the (remote) host*/

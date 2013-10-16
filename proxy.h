@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <netdb.h>
 #include <net/if.h>
 #include <linux/if_tun.h>
 #include <sys/types.h>
